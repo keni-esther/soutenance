@@ -10,4 +10,5 @@
 - [x] Onglets candidat / recruteur (`_layout.tsx`)
 - [x] Phase 5 : recruteur — profil entreprise, recherche de candidats + fiche, enregistrer / contacter (e-mail), suivi
 - [x] Phase 6 : offres (publier, modifier, désactiver, supprimer), candidatures avec score de compatibilité (`server/src/services/match.js`), retenir/refuser + e-mail, suivi candidat
+- [x] Refonte visuelle d'après `maquette/` : splash + intro (bloc rouge), version web ordinateur (≥ 900 px) avec panneau rouge à gauche (intro/connexion) et menu latéral (`components/barre-laterale.tsx`, `en-tete.tsx`, `grille.tsx`, `hooks/use-ecran-large.ts`)
 - [ ] À faire par l'utilisateur : ajouter ANTHROPIC_API_KEY (et Gmail) dans server/.env
