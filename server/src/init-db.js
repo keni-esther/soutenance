@@ -21,6 +21,6 @@ async function main() {
 
 main().catch((err) => {
   console.error('❌ Erreur MySQL :', err.message);
-  console.error('   Vérifiez que MySQL est démarré dans Laragon et les valeurs DB_* du fichier .env');
+  console.error('   Vérifiez que MySQL est démarré dans XAMPP et les valeurs DB_* du fichier .env');
   process.exit(1);
 });

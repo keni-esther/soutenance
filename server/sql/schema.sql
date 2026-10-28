@@ -108,3 +108,11 @@ CREATE TABLE IF NOT EXISTS candidatures (
   FOREIGN KEY (offre_id) REFERENCES offres(id) ON DELETE CASCADE,
   FOREIGN KEY (candidat_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
 );
+
+-- Agent IA recruteur : mémoire de la conversation (une conversation en cours par recruteur)
+CREATE TABLE IF NOT EXISTS conversations_agent (
+  recruteur_id INT PRIMARY KEY,
+  messages LONGTEXT NOT NULL,  -- historique complet envoyé à Claude (JSON)
+  mis_a_jour_le DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (recruteur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+);

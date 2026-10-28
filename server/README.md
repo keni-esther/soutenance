@@ -4,7 +4,7 @@ API Express + MySQL + Claude utilisée par l'application `cvmatchIA/`.
 
 ## Démarrage
 
-1. **Laragon** : cliquer sur « Démarrer tout » (MySQL doit tourner).
+1. **XAMPP** : démarrer MySQL dans le panneau XAMPP (Laragon doit être arrêté, sinon conflit sur le port 3306).
 2. Remplir le fichier `.env` (voir `.env.example`) :
    - `GMAIL_USER` / `GMAIL_APP_PASSWORD` pour envoyer les codes OTP par e-mail ;
    - `ANTHROPIC_API_KEY` pour le résumé de CV par Claude.
@@ -36,6 +36,7 @@ Le code OTP s'affiche aussi dans la console du serveur (pratique pour tester).
 | POST / DELETE | `/api/recruteur/candidats/:id/enregistrer` | Enregistrer / retirer un candidat |
 | POST | `/api/recruteur/candidats/:id/contacter` | Envoie un e-mail au candidat |
 | GET  | `/api/recruteur/suivi` | Candidats enregistrés et contactés |
+| GET / POST / DELETE | `/api/recruteur/agent` | Assistant IA : conversation en cours / nouvelle demande `{ message }` / recommencer |
 
 | GET / POST | `/api/recruteur/offres` | Mes offres / publier une offre |
 | PUT / DELETE | `/api/recruteur/offres/:id` | Modifier (ou désactiver) / supprimer |

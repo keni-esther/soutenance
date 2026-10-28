@@ -2,8 +2,17 @@
 const express = require('express');
 const db = require('../db');
 const { exigerConnexion, exigerRole } = require('../auth');
-const { envoyerMessageCandidat, envoyerReponseCandidature } = require('../services/mail');
+const { envoyerReponseCandidature } = require('../services/mail');
 const { scoreCompatibilite } = require('../services/match');
+const {
+  SELECT_CANDIDAT,
+  formaterCandidat,
+  rechercherCandidats,
+  candidatVisible,
+  enregistrerCandidat,
+  contacterCandidat,
+} = require('../services/candidats');
+const agent = require('../services/agent');
 
 const router = express.Router();
 router.use(exigerConnexion, exigerRole('recruteur'));
@@ -42,69 +51,15 @@ router.put('/profil', async (req, res) => {
 // RECHERCHE DE CANDIDATS
 // =============================================
 
-// Un candidat est visible s'il a déposé un CV et renseigné son métier.
-// Si son résumé IA est validé, ce sont ces infos qui sont affichées en priorité.
-const SELECT_CANDIDAT = `
-  SELECT
-    u.id,
-    p.nom,
-    COALESCE(IF(r.valide, r.metier, NULL), p.metier) AS metier,
-    COALESCE(IF(r.valide, r.ville, NULL), p.ville) AS ville,
-    COALESCE(IF(r.valide, r.annees_experience, NULL), p.annees_experience) AS annees_experience,
-    IF(r.valide, r.competences, NULL) AS competences_ia,
-    p.competences AS competences_saisies,
-    IF(r.valide, r.resume_complet, NULL) AS resume_complet,
-    COALESCE(r.valide, FALSE) AS resume_valide,
-    s.statut
-  FROM utilisateurs u
-  JOIN profils_candidats p ON p.utilisateur_id = u.id
-  JOIN cvs c ON c.utilisateur_id = u.id
-  LEFT JOIN resumes r ON r.utilisateur_id = u.id
-  LEFT JOIN suivi_candidats s ON s.candidat_id = u.id AND s.recruteur_id = ?
-  WHERE u.role = 'candidat' AND u.verifie = TRUE AND p.metier IS NOT NULL AND p.metier <> ''`;
-
-// Met les compétences sous une seule forme : un tableau de textes
-function formaterCandidat(ligne) {
-  const { competences_ia, competences_saisies, ...reste } = ligne;
-  let competences = [];
-  if (competences_ia) {
-    competences = typeof competences_ia === 'string' ? JSON.parse(competences_ia) : competences_ia;
-  } else if (competences_saisies) {
-    competences = competences_saisies.split(',').map((c) => c.trim()).filter(Boolean);
-  }
-  return { ...reste, resume_valide: Boolean(reste.resume_valide), competences };
-}
-
 // GET /api/recruteur/candidats?q=mécanicien&ville=Marcory
 // "q" cherche dans le métier, les compétences et le résumé
 router.get('/candidats', async (req, res) => {
-  const q = (req.query.q || '').trim();
-  const ville = (req.query.ville || '').trim();
-
-  let sql = SELECT_CANDIDAT;
-  const params = [req.utilisateur.id];
-
-  if (q) {
-    sql += ` AND (p.metier LIKE ? OR p.competences LIKE ? OR r.metier LIKE ?
-                  OR CAST(r.competences AS CHAR) LIKE ? OR r.resume_complet LIKE ?)`;
-    params.push(...Array(5).fill(`%${q}%`));
-  }
-  if (ville) {
-    sql += ' AND (p.ville LIKE ? OR r.ville LIKE ?)';
-    params.push(`%${ville}%`, `%${ville}%`);
-  }
-  // Les profils validés par l'IA d'abord, puis les plus expérimentés
-  sql += ' ORDER BY resume_valide DESC, annees_experience DESC, p.nom LIMIT 50';
-
-  const [lignes] = await db.query(sql, params);
-  res.json({ candidats: lignes.map(formaterCandidat) });
+  const candidats = await rechercherCandidats(req.utilisateur.id, {
+    q: (req.query.q || '').trim(),
+    ville: (req.query.ville || '').trim(),
+  });
+  res.json({ candidats });
 });
-
-// Charge un candidat visible, ou null
-async function candidatVisible(recruteurId, candidatId) {
-  const [[ligne]] = await db.query(`${SELECT_CANDIDAT} AND u.id = ?`, [recruteurId, candidatId]);
-  return ligne ? formaterCandidat(ligne) : null;
-}
 
 // GET /api/recruteur/candidats/:id — fiche détaillée
 router.get('/candidats/:id', async (req, res) => {
@@ -129,12 +84,7 @@ router.post('/candidats/:id/enregistrer', async (req, res) => {
   if (!(await candidatVisible(req.utilisateur.id, req.params.id))) {
     return res.status(404).json({ erreur: 'Candidat introuvable.' });
   }
-  // Un candidat déjà contacté reste "contacté"
-  await db.query(
-    `INSERT INTO suivi_candidats (recruteur_id, candidat_id, statut) VALUES (?, ?, 'enregistre')
-     ON DUPLICATE KEY UPDATE statut = statut`,
-    [req.utilisateur.id, req.params.id]
-  );
+  await enregistrerCandidat(req.utilisateur.id, req.params.id);
   res.json({ message: 'Candidat enregistré.' });
 });
 
@@ -159,22 +109,7 @@ router.post('/candidats/:id/contacter', async (req, res) => {
     return res.status(404).json({ erreur: 'Candidat introuvable.' });
   }
 
-  const [[{ email: emailCandidat }]] = await db.query('SELECT email FROM utilisateurs WHERE id = ?', [
-    candidat.id,
-  ]);
-  const [[recruteur]] = await db.query(
-    `SELECT r.entreprise, r.telephone, u.email FROM profils_recruteurs r
-     JOIN utilisateurs u ON u.id = r.utilisateur_id WHERE r.utilisateur_id = ?`,
-    [req.utilisateur.id]
-  );
-
-  await envoyerMessageCandidat({ emailCandidat, nomCandidat: candidat.nom, recruteur, message });
-
-  await db.query(
-    `INSERT INTO suivi_candidats (recruteur_id, candidat_id, statut, message) VALUES (?, ?, 'contacte', ?)
-     ON DUPLICATE KEY UPDATE statut = 'contacte', message = VALUES(message)`,
-    [req.utilisateur.id, candidat.id, message]
-  );
+  const emailCandidat = await contacterCandidat(req.utilisateur.id, candidat, message);
   res.json({ message: 'Message envoyé au candidat !', email: emailCandidat });
 });
 
@@ -346,6 +281,38 @@ router.put('/candidatures/:id', async (req, res) => {
     retenue: statut === 'retenue',
   });
   res.json({ message: statut === 'retenue' ? 'Candidat retenu, il a été prévenu.' : 'Candidature refusée.' });
+});
+
+// =============================================
+// AGENT IA (assistant recruteur)
+// =============================================
+
+// GET /api/recruteur/agent — conversation en cours
+router.get('/agent', async (req, res) => {
+  const messages = await agent.chargerHistorique(req.utilisateur.id);
+  res.json({ fil: await agent.filDeDiscussion(req.utilisateur.id, messages) });
+});
+
+// POST /api/recruteur/agent  { message }
+router.post('/agent', async (req, res) => {
+  const message = (req.body.message || '').trim();
+  if (!message) return res.status(400).json({ erreur: 'Écrivez votre demande.' });
+  if (message.length > 2000) return res.status(400).json({ erreur: 'Demande trop longue (2000 caractères maximum).' });
+
+  try {
+    res.json({ fil: await agent.demanderAgent(req.utilisateur.id, message) });
+  } catch (err) {
+    console.error('Agent :', err);
+    res.status(502).json({
+      erreur: err.visible ? err.message : "L'assistant est indisponible pour le moment, réessayez dans un instant.",
+    });
+  }
+});
+
+// DELETE /api/recruteur/agent — nouvelle conversation
+router.delete('/agent', async (req, res) => {
+  await agent.effacerHistorique(req.utilisateur.id);
+  res.json({ fil: [] });
 });
 
 module.exports = router;
