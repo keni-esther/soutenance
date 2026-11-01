@@ -1,0 +1,11 @@
+# Bloc 2 — deep matching CV ↔ offre
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers
+scikit-learn
+pandas
+matplotlib
+joblib
+# Service appelé par l'API Node
+fastapi
+uvicorn

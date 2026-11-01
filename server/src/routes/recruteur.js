@@ -3,7 +3,7 @@ const express = require('express');
 const db = require('../db');
 const { exigerConnexion, exigerRole } = require('../auth');
 const { envoyerReponseCandidature } = require('../services/mail');
-const { scoreCompatibilite } = require('../services/match');
+const { scoresCompatibilite } = require('../services/match');
 const {
   SELECT_CANDIDAT,
   formaterCandidat,
@@ -232,19 +232,17 @@ router.get('/offres/:id/candidatures', async (req, res) => {
   ]);
   const candidats = new Map(lignes.map((l) => [l.id, formaterCandidat(l)]));
 
-  const resultat = candidatures
-    .filter((c) => candidats.has(c.candidat_id))
-    .map((c) => {
-      const candidat = candidats.get(c.candidat_id);
-      return {
-        id: c.id,
-        message: c.message,
-        statut: c.statut,
-        cree_le: c.cree_le,
-        score: scoreCompatibilite(offre, candidat),
-        candidat,
-      };
-    })
+  const visibles = candidatures.filter((c) => candidats.has(c.candidat_id));
+  const scores = await scoresCompatibilite(visibles.map((c) => ({ offre, candidat: candidats.get(c.candidat_id) })));
+  const resultat = visibles
+    .map((c, i) => ({
+      id: c.id,
+      message: c.message,
+      statut: c.statut,
+      cree_le: c.cree_le,
+      score: scores[i],
+      candidat: candidats.get(c.candidat_id),
+    }))
     .sort((a, b) => b.score - a.score);
 
   // Le recruteur a maintenant vu les nouvelles candidatures

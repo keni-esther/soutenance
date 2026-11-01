@@ -2,7 +2,7 @@
 // (recherche, offres, score de compatibilité, suivi) et garde la mémoire de la conversation.
 const Anthropic = require('@anthropic-ai/sdk');
 const db = require('../db');
-const { scoreCompatibilite } = require('./match');
+const { scoresCompatibilite } = require('./match');
 const { rechercherCandidats, candidatVisible, enregistrerCandidat } = require('./candidats');
 
 const client = new Anthropic(); // lit ANTHROPIC_API_KEY dans .env
@@ -183,8 +183,9 @@ async function executerOutil(nom, entree, recruteurId) {
       const ontPostule = new Set(postulants.map((p) => p.candidat_id));
 
       const candidats = await rechercherCandidats(recruteurId);
+      const scores = await scoresCompatibilite(candidats.map((candidat) => ({ offre, candidat })));
       const classement = candidats
-        .map((c) => ({ ...candidatCourt(c), score: scoreCompatibilite(offre, c), a_postule: ontPostule.has(c.id) }))
+        .map((c, i) => ({ ...candidatCourt(c), score: scores[i], a_postule: ontPostule.has(c.id) }))
         .sort((a, b) => b.score - a.score)
         .slice(0, limite);
       return { offre: { id: offre.id, titre: offre.titre, metier: offre.metier, ville: offre.ville }, classement };

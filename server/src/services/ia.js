@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const mammoth = require('mammoth');
+const { resumeLocal } = require('./resume-local');
 
 const client = new Anthropic(); // lit ANTHROPIC_API_KEY dans .env
 
@@ -59,16 +60,8 @@ async function contenuDuCV(chemin, typeMime) {
   throw new Error('Format non pris en charge. Utilisez un PDF, un Word (.docx) ou une photo (JPG/PNG).');
 }
 
-/**
- * Génère le résumé d'un CV.
- * @param {string} chemin   chemin du fichier sur le disque
- * @param {string} typeMime type du fichier
- * @param {object} profil   infos saisies par le candidat (nom, metier, ville...)
- */
-async function genererResume(chemin, typeMime, profil) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('Clé ANTHROPIC_API_KEY manquante dans server/.env.');
-  }
+// Résumé par Claude (lève une erreur si la clé est invalide, le réseau coupé, etc.)
+async function resumeParClaude(chemin, typeMime, profil) {
   const cv = await contenuDuCV(chemin, typeMime);
 
   const reponse = await client.beta.messages.create({
@@ -105,6 +98,24 @@ async function genererResume(chemin, typeMime, profil) {
 
   const texte = reponse.content.find((bloc) => bloc.type === 'text');
   return JSON.parse(texte.text);
+}
+
+/**
+ * Génère le résumé d'un CV : par Claude si possible, sinon par le résumé local (resume-local.js).
+ * @param {string} chemin   chemin du fichier sur le disque
+ * @param {string} typeMime type du fichier
+ * @param {object} profil   infos saisies par le candidat (nom, metier, ville...)
+ * @returns {{ resume: object, parIA: boolean }}
+ */
+async function genererResume(chemin, typeMime, profil) {
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      return { resume: await resumeParClaude(chemin, typeMime, profil), parIA: true };
+    } catch (err) {
+      console.warn(`Claude indisponible (${err.message}) : résumé local.`);
+    }
+  }
+  return { resume: await resumeLocal(chemin, typeMime, profil), parIA: false };
 }
 
 module.exports = { genererResume };

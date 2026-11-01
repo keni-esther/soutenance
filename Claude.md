@@ -14,12 +14,13 @@
 - [x] Gmail configuré dans server/.env
 - [x] Mise à jour Expo SDK 57 → 58 (Expo Go l'exige) ; `API_URL` déduite de l'IP d'Expo (`hostUri`), plus d'IP en dur
 - [x] Inscription : confirmation du mot de passe + œil afficher/masquer (connexion et inscription)
-- [ ] À faire par l'utilisateur : mettre une vraie clé Anthropic (`sk-ant-api03-…`) dans server/.env. La clé actuelle (`sk-…`, 35 car.) n'est pas une clé Anthropic → 401, le résumé du CV échoue
-- [ ] Commit côté `server/` (agent, candidats.js…) — le dépôt racine n'a pas été commité depuis `cde38d3`
+- [ ] À faire par l'utilisateur, plus tard (pas encore le budget, nov. 2026) : mettre une vraie clé Anthropic (`sk-ant-api03-…`) dans server/.env. La clé actuelle (`sk-…`, 35 car.) n'est pas une clé Anthropic → 401
+- [x] Mode sans clé : si Claude échoue, résumé du CV local (`server/src/services/resume-local.js` : texte du PDF/Word + compétences connues + profil). L'agent recruteur, lui, reste indisponible sans clé
+- [x] Commit côté `server/` (agent, candidats.js…) : `6fc1648`
 - [ ] Préparer la démo : comptes de test (candidat, recruteur) + quelques offres
 
 ## Reste à faire d'après la grille (`maquette/Evaluation Soutenance DATA IA.pdf`, /130)
-- [ ] Bloc 2 Modèle (/25) : rien d'entraîné (`match.js` = règles par mots-clés). Plan validé avec l'utilisateur : **deep matching** = embeddings multilingues (sentence-transformers) CV ↔ offre + petit modèle scikit-learn entraîné sur des paires étiquetées, métriques, comparaison avec `match.js` (gardé en secours), utilisé dans l'API
+- [~] Bloc 2 Modèle (/25) : **deep matching fait dans `modele/`** (28-29 oct., pas encore commité) : jeu Hugging Face `resume-job-description-fit` (8 000 paires), embeddings `multilingual-e5-small` + régression logistique ; test : F1 0,45 / AUC 0,68 / précision top 5 0,64 contre 0,30 / 0,45 / 0,49 pour les mots-clés. Service FastAPI `modele/service.py` (port 8000) appelé par `match.js` (`scoresCompatibilite`, secours mots-clés). Reste : commit, tester de bout en bout dans l'app, expliquer les résultats pour le jury
 - [x] Bloc 4 Agent IA (/25) : assistant recruteur `server/src/services/agent.js` (boucle d'outils Claude, 6 outils, mémoire en base `conversations_agent`, brouillons validés par le recruteur avant envoi) + onglet `recruteur/assistant.tsx`. Outils testés sur la base ; **pas encore testé avec Claude (clé API manquante)**
 - [ ] Bloc 4 suite : scénarios de test de l'agent à présenter au jury (demande normale, ambiguë, discriminatoire, hors sujet, aucun résultat)
 - [ ] Bloc 1 Données (/25) : nettoyage/analyse documentés + tableau de bord avec graphiques

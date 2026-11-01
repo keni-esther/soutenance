@@ -6,7 +6,7 @@ const multer = require('multer');
 const db = require('../db');
 const { exigerConnexion, exigerRole } = require('../auth');
 const { genererResume } = require('../services/ia');
-const { scoreCompatibilite } = require('../services/match');
+const { scoresCompatibilite } = require('../services/match');
 
 const router = express.Router();
 router.use(exigerConnexion, exigerRole('candidat'));
@@ -92,7 +92,7 @@ router.post('/upload-cv', upload.single('cv'), async (req, res) => {
 
   try {
     const profil = await profilDe(id);
-    const r = await genererResume(req.file.path, req.file.mimetype, {
+    const { resume: r, parIA } = await genererResume(req.file.path, req.file.mimetype, {
       nom: profil.nom,
       metier: profil.metier,
       ville: profil.ville,
@@ -106,7 +106,11 @@ router.post('/upload-cv', upload.single('cv'), async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, FALSE)`,
       [id, r.metier, r.ville, r.annees_experience, JSON.stringify(r.competences), r.resume_complet]
     );
-    res.json({ message: 'CV analysé ! Vérifiez votre résumé.' });
+    res.json({
+      message: parIA
+        ? 'CV analysé ! Vérifiez votre résumé.'
+        : 'CV analysé en mode simplifié (sans IA). Vérifiez et complétez votre résumé.',
+    });
   } catch (err) {
     console.error('Erreur IA :', err);
     res.status(502).json({ erreur: `CV enregistré, mais le résumé n'a pas pu être généré. ${err.message}` });
@@ -176,10 +180,9 @@ router.get('/offres', async (req, res) => {
 
   const [offres] = await db.query(sql, params);
   const moi = await donneesPourScore(req.utilisateur.id);
+  const scores = await scoresCompatibilite(offres.map((offre) => ({ offre, candidat: moi })));
   res.json({
-    offres: offres
-      .map((o) => ({ ...o, score: scoreCompatibilite(o, moi) }))
-      .sort((a, b) => b.score - a.score),
+    offres: offres.map((o, i) => ({ ...o, score: scores[i] })).sort((a, b) => b.score - a.score),
   });
 });
 
@@ -188,7 +191,8 @@ router.get('/offres/:id', async (req, res) => {
   const [[offre]] = await db.query(`${SELECT_OFFRE} AND o.id = ?`, [req.utilisateur.id, req.params.id]);
   if (!offre) return res.status(404).json({ erreur: "Cette offre n'est plus disponible." });
   const moi = await donneesPourScore(req.utilisateur.id);
-  res.json({ offre: { ...offre, score: scoreCompatibilite(offre, moi) } });
+  const [score] = await scoresCompatibilite([{ offre, candidat: moi }]);
+  res.json({ offre: { ...offre, score } });
 });
 
 // POST /api/candidat/offres/:id/postuler  { message? }

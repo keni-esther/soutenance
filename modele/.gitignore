@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+# Données téléchargées (68 Mo) : se récupèrent avec telecharger_donnees.py
+donnees/
+entrainement.log

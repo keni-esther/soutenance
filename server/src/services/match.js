@@ -1,5 +1,6 @@
 // match.js — score de compatibilité entre un candidat et une offre (0 à 100)
-// Calcul simple, sans IA : on compare les mots du métier, des compétences et la ville.
+// 1. Deep matching : le modèle entraîné du dossier modele/ (service Python, MODELE_URL)
+// 2. En secours, si ce service ne répond pas : calcul simple par mots du métier, des compétences et de la ville
 
 // Mots trop courants pour être utiles
 const MOTS_VIDES = new Set(['de', 'des', 'du', 'la', 'le', 'les', 'et', 'en', 'un', 'une', 'pour', 'au', 'aux', 'a', 'h', 'f']);
@@ -49,4 +50,54 @@ function scoreCompatibilite(offre, candidat) {
   return Math.min(100, pointsMetier + pointsCompetences + pointsVille);
 }
 
-module.exports = { scoreCompatibilite };
+// =============================================
+// DEEP MATCHING (modele/service.py)
+// =============================================
+const MODELE_URL = process.env.MODELE_URL || 'http://127.0.0.1:8000';
+
+// Textes envoyés au modèle : tout ce qu'on sait du candidat et de l'offre
+function texteCandidat(c) {
+  return [
+    c.metier,
+    c.ville,
+    c.annees_experience != null ? `${c.annees_experience} ans d'expérience` : '',
+    (c.competences || []).length ? `Compétences : ${c.competences.join(', ')}` : '',
+    c.resume_complet,
+  ]
+    .filter(Boolean)
+    .join('. ');
+}
+
+function texteOffre(o) {
+  return [o.titre, o.metier, o.ville, o.competences ? `Compétences : ${o.competences}` : '', o.description]
+    .filter(Boolean)
+    .join('. ');
+}
+
+/**
+ * Scores de plusieurs paires en un seul appel au modèle.
+ * @param paires [{ offre, candidat }]
+ * @returns      [score 0-100], dans le même ordre
+ */
+async function scoresCompatibilite(paires) {
+  if (paires.length === 0) return [];
+  try {
+    const reponse = await fetch(`${MODELE_URL}/scores`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paires: paires.map(({ offre, candidat }) => ({ cv: texteCandidat(candidat), offre: texteOffre(offre) })),
+      }),
+      // Le 1er calcul d'un CV prend ~ 1 s sur processeur, les suivants sont en cache
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
+    const { scores } = await reponse.json();
+    return scores.map((s) => s.score);
+  } catch (err) {
+    console.warn(`Modèle de deep matching indisponible (${err.message}) : score par mots-clés.`);
+    return paires.map(({ offre, candidat }) => scoreCompatibilite(offre, candidat));
+  }
+}
+
+module.exports = { scoreCompatibilite, scoresCompatibilite };
