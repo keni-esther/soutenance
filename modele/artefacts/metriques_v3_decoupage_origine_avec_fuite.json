@@ -1,0 +1,61 @@
+{
+  "modele_embeddings": "intfloat/multilingual-e5-small|début du texte (512 tokens)",
+  "classifieur_retenu": "Régression logistique (C=0.01)",
+  "paires_entrainement": 6234,
+  "paires_test": 1759,
+  "validation_croisee": {
+    "Régression logistique (C=0.01)": {
+      "moyenne": 0.4148959590832081,
+      "ecart_type": 0.036159108029533156
+    },
+    "Régression logistique (C=0.1)": {
+      "moyenne": 0.3986192623021575,
+      "ecart_type": 0.03924277214342811
+    },
+    "Régression logistique (C=1)": {
+      "moyenne": 0.39120800767293296,
+      "ecart_type": 0.03976626101464643
+    },
+    "Gradient boosting": {
+      "moyenne": 0.41042778509632283,
+      "ecart_type": 0.01504198064725484
+    }
+  },
+  "test": {
+    "Mots-clés (comme match.js)": {
+      "exactitude": 0.3877202956225128,
+      "f1_macro": 0.3037959700357437,
+      "auc_good_fit": 0.45045799502566053,
+      "precision_top5": 0.48571428571428577
+    },
+    "Cosinus seul": {
+      "exactitude": 0.42410460488914153,
+      "f1_macro": 0.36861896071125605,
+      "auc_good_fit": 0.5765131960970566,
+      "precision_top5": 0.5214285714285715
+    },
+    "Deep matching": {
+      "exactitude": 0.46560545764639,
+      "f1_macro": 0.4460984938002263,
+      "auc_good_fit": 0.6750324741800898,
+      "precision_top5": 0.6428571428571429
+    }
+  },
+  "matrice_confusion_deep_matching": [
+    [
+      440,
+      240,
+      177
+    ],
+    [
+      157,
+      208,
+      79
+    ],
+    [
+      116,
+      171,
+      171
+    ]
+  ]
+}

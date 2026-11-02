@@ -1,61 +1,119 @@
 {
   "modele_embeddings": "intfloat/multilingual-e5-small|début du texte (512 tokens)",
   "classifieur_retenu": "Régression logistique (C=0.01)",
-  "paires_entrainement": 6234,
-  "paires_test": 1759,
+  "donnees": "cvmatch_donnees.db (nettoyées au bloc 1) : 7933 paires",
+  "evaluation": "5 tirages ; test = paires dont le CV et l'offre sont nouveaux (30 % des CV et des offres mis de côté)",
+  "paires_entrainement_test_par_tirage": [
+    [
+      3974,
+      669
+    ],
+    [
+      4219,
+      601
+    ],
+    [
+      3870,
+      699
+    ],
+    [
+      3981,
+      705
+    ],
+    [
+      4159,
+      595
+    ]
+  ],
   "validation_croisee": {
     "Régression logistique (C=0.01)": {
-      "moyenne": 0.4148959590832081,
-      "ecart_type": 0.036159108029533156
+      "moyenne": 0.4274742054866626,
+      "ecart_type": 0.03526069982146955
     },
     "Régression logistique (C=0.1)": {
-      "moyenne": 0.3986192623021575,
-      "ecart_type": 0.03924277214342811
+      "moyenne": 0.41878702244655697,
+      "ecart_type": 0.022437747523746145
     },
     "Régression logistique (C=1)": {
-      "moyenne": 0.39120800767293296,
-      "ecart_type": 0.03976626101464643
+      "moyenne": 0.3941041374131028,
+      "ecart_type": 0.022351985497219513
     },
     "Gradient boosting": {
-      "moyenne": 0.41042778509632283,
-      "ecart_type": 0.01504198064725484
+      "moyenne": 0.3905161932792079,
+      "ecart_type": 0.03100593313997239
     }
   },
   "test": {
     "Mots-clés (comme match.js)": {
-      "exactitude": 0.3877202956225128,
-      "f1_macro": 0.3037959700357437,
-      "auc_good_fit": 0.45045799502566053,
-      "precision_top5": 0.48571428571428577
+      "exactitude": {
+        "moyenne": 0.43135505369231864,
+        "ecart_type": 0.01118143141938282
+      },
+      "f1_macro": {
+        "moyenne": 0.32840337834673633,
+        "ecart_type": 0.010101438295490093
+      },
+      "auc_good_fit": {
+        "moyenne": 0.5382356465348226,
+        "ecart_type": 0.031450056344067175
+      },
+      "precision_top5": {
+        "moyenne": 0.5016611166611166,
+        "ecart_type": 0.046848867841459564
+      }
     },
     "Cosinus seul": {
-      "exactitude": 0.42410460488914153,
-      "f1_macro": 0.36861896071125605,
-      "auc_good_fit": 0.5765131960970566,
-      "precision_top5": 0.5214285714285715
+      "exactitude": {
+        "moyenne": 0.45748124615955355,
+        "ecart_type": 0.023059220337115598
+      },
+      "f1_macro": {
+        "moyenne": 0.3779253915581887,
+        "ecart_type": 0.01492789532936387
+      },
+      "auc_good_fit": {
+        "moyenne": 0.6362322267414973,
+        "ecart_type": 0.04172775065270876
+      },
+      "precision_top5": {
+        "moyenne": 0.6020693195693196,
+        "ecart_type": 0.03110543817951818
+      }
     },
     "Deep matching": {
-      "exactitude": 0.46560545764639,
-      "f1_macro": 0.4460984938002263,
-      "auc_good_fit": 0.6750324741800898,
-      "precision_top5": 0.6428571428571429
+      "exactitude": {
+        "moyenne": 0.4496816332336489,
+        "ecart_type": 0.017894111549103288
+      },
+      "f1_macro": {
+        "moyenne": 0.4120967844380594,
+        "ecart_type": 0.014358084583780543
+      },
+      "auc_good_fit": {
+        "moyenne": 0.6397746912992266,
+        "ecart_type": 0.04521069483557907
+      },
+      "precision_top5": {
+        "moyenne": 0.6051820401820402,
+        "ecart_type": 0.026169385533781533
+      }
     }
   },
-  "matrice_confusion_deep_matching": [
+  "matrice_confusion_deep_matching_cumulee": [
     [
-      440,
-      240,
-      177
+      877,
+      541,
+      260
     ],
     [
-      157,
-      208,
-      79
+      305,
+      382,
+      166
     ],
     [
-      116,
-      171,
-      171
+      226,
+      305,
+      207
     ]
   ]
 }
