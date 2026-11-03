@@ -7,6 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Journal : chaque requête reçue, avec l'adresse de l'appareil (utile pour vérifier que le téléphone arrive jusqu'ici)
+app.use((req, res, next) => {
+  res.on('finish', () => console.log(`${req.ip} ${req.method} ${req.originalUrl} -> ${res.statusCode}`));
+  next();
+});
+
 app.get('/', (req, res) => res.json({ message: 'API CVMatch IA en ligne' }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/candidat', require('./routes/candidat'));

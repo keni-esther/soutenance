@@ -21,11 +21,13 @@ const TYPES_ACCEPTES = [
   'image/gif',
   'image/webp',
 ];
+// Photos d'un CV en plusieurs pages : type retrouvé d'après l'extension
+const TYPE_IMAGE = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
 const upload = multer({
   storage: multer.diskStorage({
     destination: DOSSIER_UPLOADS,
     filename: (req, fichier, cb) =>
-      cb(null, `cv-${req.utilisateur.id}-${Date.now()}${path.extname(fichier.originalname)}`),
+      cb(null, `cv-${req.utilisateur.id}-${Date.now()}${path.extname(fichier.originalname) || '.jpg'}`),
   }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 Mo
   fileFilter: (req, fichier, cb) => {
@@ -35,6 +37,11 @@ const upload = multer({
     cb(erreur);
   },
 });
+
+// Colonne JSON : MySQL la renvoie en tableau, MariaDB (XAMPP) en texte
+function listeCompetences(valeur) {
+  return typeof valeur === 'string' ? JSON.parse(valeur) : valeur || [];
+}
 
 async function profilDe(id) {
   const [[profil]] = await db.query('SELECT * FROM profils_candidats WHERE utilisateur_id = ?', [id]);
@@ -54,7 +61,7 @@ router.get('/profil', async (req, res) => {
     profil: (await profilDe(id)) || null,
     cv: cv || null,
     // L'app attend les compétences sous forme de texte JSON
-    resume: resume ? { ...resume, competences: JSON.stringify(resume.competences) } : null,
+    resume: resume ? { ...resume, competences: JSON.stringify(listeCompetences(resume.competences)) } : null,
   });
 });
 
@@ -75,24 +82,59 @@ router.put('/profil', async (req, res) => {
   res.json({ message: 'Profil mis à jour.' });
 });
 
-// POST /api/candidat/upload-cv — enregistre le CV puis demande le résumé à Claude
+const MAX_PAGES = 5;
+
+// Fichiers du CV d'un candidat dans uploads/, dans l'ordre d'envoi (le nom contient l'heure)
+function fichiersDuCV(id) {
+  return fs
+    .readdirSync(DOSSIER_UPLOADS)
+    .filter((nom) => nom.startsWith(`cv-${id}-`))
+    .sort()
+    .map((nom) => path.join(DOSSIER_UPLOADS, nom));
+}
+
+// POST /api/candidat/upload-cv — enregistre le CV puis demande le résumé à Claude.
+// CV photographié en plusieurs pages : une requête par page (champs « page » et « pages »),
+// le résumé est fait à la dernière page.
 router.post('/upload-cv', upload.single('cv'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ erreur: 'Aucun fichier reçu.' });
   }
   const id = req.utilisateur.id;
+  const pages = Math.min(Math.max(parseInt(req.body.pages, 10) || 1, 1), MAX_PAGES);
+  const page = Math.min(Math.max(parseInt(req.body.page, 10) || 1, 1), pages);
 
-  // Remplace l'ancien CV (et supprime l'ancien fichier)
-  const [[ancien]] = await db.query('SELECT chemin FROM cvs WHERE utilisateur_id = ?', [id]);
-  if (ancien) fs.rm(ancien.chemin, { force: true }, () => {});
+  // Première page : remplace l'ancien CV (et supprime les anciens fichiers)
+  if (page === 1) {
+    for (const ancien of fichiersDuCV(id)) {
+      if (ancien !== req.file.path) fs.rmSync(ancien, { force: true });
+    }
+  }
+  if (page < pages) {
+    return res.json({ message: `Page ${page} sur ${pages} reçue.` });
+  }
+
+  // Un seul fichier (PDF, Word, photo), ou toutes les pages photographiées
+  const fichiers =
+    pages === 1
+      ? [{ chemin: req.file.path, typeMime: req.file.mimetype }]
+      : fichiersDuCV(id).map((chemin) => ({ chemin, typeMime: TYPE_IMAGE[path.extname(chemin).toLowerCase()] }));
+  if (fichiers.length !== pages || fichiers.some((f) => !f.typeMime)) {
+    return res.status(400).json({ erreur: 'Pages du CV incomplètes, reprenez l\'envoi.' });
+  }
   await db.query(
     'REPLACE INTO cvs (utilisateur_id, chemin, nom_original, type_mime) VALUES (?, ?, ?, ?)',
-    [id, req.file.path, req.file.originalname, req.file.mimetype]
+    [
+      id,
+      fichiers[0].chemin,
+      fichiers.length > 1 ? `Photos du CV (${fichiers.length} pages)` : req.file.originalname,
+      fichiers[0].typeMime,
+    ]
   );
 
   try {
     const profil = await profilDe(id);
-    const { resume: r, parIA } = await genererResume(req.file.path, req.file.mimetype, {
+    const { resume: r, parIA } = await genererResume(fichiers, {
       nom: profil.nom,
       metier: profil.metier,
       ville: profil.ville,
@@ -140,7 +182,7 @@ async function donneesPourScore(id) {
     return {
       metier: resume.metier || profil.metier,
       ville: resume.ville || profil.ville,
-      competences: resume.competences || [],
+      competences: listeCompetences(resume.competences),
       resume_complet: resume.resume_complet,
     };
   }

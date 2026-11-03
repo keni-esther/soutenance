@@ -61,8 +61,9 @@ async function contenuDuCV(chemin, typeMime) {
 }
 
 // Résumé par Claude (lève une erreur si la clé est invalide, le réseau coupé, etc.)
-async function resumeParClaude(chemin, typeMime, profil) {
-  const cv = await contenuDuCV(chemin, typeMime);
+async function resumeParClaude(fichiers, profil) {
+  const cv = [];
+  for (const { chemin, typeMime } of fichiers) cv.push(await contenuDuCV(chemin, typeMime));
 
   const reponse = await client.beta.messages.create({
     model: 'claude-opus-5-5',
@@ -79,7 +80,7 @@ async function resumeParClaude(chemin, typeMime, profil) {
       {
         role: 'user',
         content: [
-          cv,
+          ...cv,
           {
             type: 'text',
             text: `Profil saisi par le candidat : ${JSON.stringify(profil)}\n\nAnalyse ce CV.`,
@@ -102,20 +103,19 @@ async function resumeParClaude(chemin, typeMime, profil) {
 
 /**
  * Génère le résumé d'un CV : par Claude si possible, sinon par le résumé local (resume-local.js).
- * @param {string} chemin   chemin du fichier sur le disque
- * @param {string} typeMime type du fichier
+ * @param {{ chemin: string, typeMime: string }[]} fichiers le CV (un fichier, ou une photo par page)
  * @param {object} profil   infos saisies par le candidat (nom, metier, ville...)
  * @returns {{ resume: object, parIA: boolean }}
  */
-async function genererResume(chemin, typeMime, profil) {
+async function genererResume(fichiers, profil) {
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      return { resume: await resumeParClaude(chemin, typeMime, profil), parIA: true };
+      return { resume: await resumeParClaude(fichiers, profil), parIA: true };
     } catch (err) {
       console.warn(`Claude indisponible (${err.message}) : résumé local.`);
     }
   }
-  return { resume: await resumeLocal(chemin, typeMime, profil), parIA: false };
+  return { resume: await resumeLocal(fichiers, profil), parIA: false };
 }
 
 module.exports = { genererResume };
