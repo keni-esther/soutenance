@@ -4,9 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const mammoth = require('mammoth');
 const { PDFParse } = require('pdf-parse');
+const { createWorker } = require('tesseract.js');
 const db = require('../db');
 
 const MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+// Langues de l'OCR, téléchargées une seule fois (~ 15 Mo) dans server/.cache-ocr/
+const DOSSIER_OCR = path.join(__dirname, '..', '..', '.cache-ocr');
 
 // Compétences courantes, complétées par celles des offres publiées et du profil du candidat
 const COMPETENCES_CONNUES = [
@@ -45,7 +48,24 @@ async function texteDuCV(chemin, typeMime) {
   if (typeMime === MIME_DOCX || path.extname(chemin).toLowerCase() === '.docx') {
     return (await mammoth.extractRawText({ path: chemin })).value;
   }
-  return ''; // photo du CV : impossible à lire sans IA, on s'appuie sur le profil
+  if (typeMime.startsWith('image/')) {
+    return texteDeLaPhoto(chemin);
+  }
+  return '';
+}
+
+// Photo du CV : lecture du texte par OCR (Tesseract, français + anglais), ~ 5 à 15 s
+async function texteDeLaPhoto(chemin) {
+  fs.mkdirSync(DOSSIER_OCR, { recursive: true });
+  const ocr = await createWorker(['fra', 'eng'], 1, { cachePath: DOSSIER_OCR });
+  try {
+    return (await ocr.recognize(chemin)).data.text;
+  } catch (err) {
+    console.warn(`OCR impossible (${err.message}) : résumé à partir du profil.`);
+    return '';
+  } finally {
+    await ocr.terminate();
+  }
 }
 
 async function vocabulaire(profil) {
@@ -85,11 +105,20 @@ async function resumeLocal(chemin, typeMime, profil) {
   const phrases = [`${profil.metier || 'Candidat'}${profil.ville ? `, basé à ${profil.ville}` : ''}.`];
   if (annees != null) phrases.push(`${annees} an${annees > 1 ? 's' : ''} d'expérience professionnelle.`);
   if (competences.length) phrases.push(`Compétences : ${competences.join(', ')}.`);
-  phrases.push(
-    texte
-      ? 'Résumé établi automatiquement à partir du texte du CV et du profil saisi.'
-      : 'Le CV est une photo : résumé établi à partir du profil saisi.'
-  );
+  const photo = typeMime.startsWith('image/');
+  if (!texte.trim()) {
+    phrases.push(
+      photo
+        ? 'Le texte de la photo n\'a pas pu être lu : résumé établi à partir du profil saisi.'
+        : 'Résumé établi à partir du profil saisi.'
+    );
+  } else {
+    phrases.push(
+      photo
+        ? 'Résumé établi automatiquement à partir du texte lu sur la photo du CV et du profil saisi.'
+        : 'Résumé établi automatiquement à partir du texte du CV et du profil saisi.'
+    );
+  }
 
   return {
     metier: profil.metier || '',

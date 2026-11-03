@@ -20,6 +20,7 @@
     "multer": "^2.4.0",
     "mysql2": "^3.24.6",
     "nodemailer": "^10.1.2",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "tesseract.js": "^7.0.0"
   }
 }

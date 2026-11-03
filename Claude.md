@@ -24,7 +24,8 @@
 - [x] Bloc 4 Agent IA (/25) : assistant recruteur `server/src/services/agent.js` (boucle d'outils Claude, 6 outils, mémoire en base `conversations_agent`, brouillons validés par le recruteur avant envoi) + onglet `recruteur/assistant.tsx`. Outils testés sur la base ; **pas encore testé avec Claude (clé API manquante)**
 - [ ] Bloc 4 suite : scénarios de test de l'agent à présenter au jury (demande normale, ambiguë, discriminatoire, hors sujet, aucun résultat)
 - [x] Bloc 1 Données (/25) : notebook `analyse/analyse_donnees.ipynb` (collecte, nettoyage, base SQLite `cvmatch_donnees.db` non versionnée, analyse, 6 graphiques dans `analyse/graphiques/`, conclusions) + exports `rapport_complet.html` et `tableau_de_bord.html` (sans code). Relancer : `modele\.venv\Scripts\python.exe -m jupyter nbconvert --execute --to notebook --inplace analyse\analyse_donnees.ipynb`
-- [ ] Bloc 3 App (/30) : déployer (API + base MySQL + web), APK Android (EAS), version desktop installable (Electron), quelques tests, fonction mobile (caméra pour photographier le CV, notifications)
+- [x] Bloc 3 fonction mobile : bouton « Prendre en photo » (`expo-image-picker`, `candidat/profil.tsx`, masqué sur web) + OCR Tesseract côté serveur dans le résumé local (`resume-local.js`, langues fra+eng en cache dans `server/.cache-ocr/`). Testé côté serveur sur une image ; **pas encore testé sur un vrai téléphone**
+- [ ] Bloc 3 App (/30) : déployer (API + base MySQL + web), APK Android (EAS), version desktop installable (Electron), quelques tests, stockage sécurisé du jeton (`expo-secure-store` : aujourd'hui le jeton est seulement en mémoire, on est déconnecté en fermant l'app). `expo-doctor` : petits retards de version Expo déjà présents (`npx expo install --fix`)
 - [ ] Bloc 5 Intégration IA (/25) : déjà bien couvert ; ajouter la clé API, gestion des coûts/délais
 
 ## Notes
