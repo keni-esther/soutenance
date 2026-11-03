@@ -115,9 +115,9 @@ def decoupage(graine):
     return (~cv_test & ~offre_test).to_numpy(), (cv_test & offre_test).to_numpy()
 
 
-# =============================================
+
 # 3. CHOIX DU CLASSIFIEUR (validation croisée groupée par offre, sur l'entraînement du 1er tirage)
-# =============================================
+
 def regression_logistique(c):
     return make_pipeline(StandardScaler(), LogisticRegression(C=c, class_weight='balanced', max_iter=3000))
 
@@ -195,9 +195,9 @@ for nom, valeurs in metriques.items():
     print(f'{nom:28s} ' + '  '.join(f'{m} {v["moyenne"]:.3f} ± {v["ecart_type"]:.3f}' for m, v in valeurs.items()))
 
 
-# =============================================
+
 # 5. MODÈLE FINAL : réentraîné sur TOUTES les paires (l'évaluation est faite)
-# =============================================
+
 modele_final = candidats[meilleur_nom]().fit(X, y)
 joblib.dump(
     {'classifieur': modele_final, 'modele_embeddings': NOM_MODELE_EMBEDDINGS, 'etiquettes': ETIQUETTES},
@@ -223,9 +223,9 @@ with open(ARTEFACTS / 'metriques.json', 'w', encoding='utf-8') as f:
     )
 
 
-# =============================================
+
 # 6. GRAPHIQUES
-# =============================================
+
 # Matrice de confusion du modèle retenu (somme des 5 tirages)
 fig, ax = plt.subplots(figsize=(6, 5))
 ConfusionMatrixDisplay(confusion, display_labels=ETIQUETTES).plot(cmap='Reds', ax=ax, colorbar=False)
