@@ -29,6 +29,8 @@
 - [x] Résumé local enrichi (`resume-local.js`) : formation (rubrique « Formation »), langues + niveau, qualités, plus de compétences (data/IA), sans doublons ni termes inclus ; tournure neutre (« Développeuse data IA à Abidjan », « Profil junior/débutant ») ; plus de phrase « Résumé établi automatiquement… ». PDF fait d'images (Canva, scan) : OCR des 3 premières pages (~15 s). Le paragraphe « Profil » n'est pas repris : l'OCR mélange les CV en deux colonnes
 - [x] Journal des requêtes du serveur (`index.js`) : adresse de l'appareil, route, code. Pour la démo, lancer avec `npm start` (pas `npm run dev` : `--watch` relance le serveur en cours de route)
 - [x] Corrigé : compétences du résumé encodées deux fois avec MariaDB (XAMPP renvoie la colonne JSON en texte), ce qui faisait planter l'écran « Mon résumé »
+- [x] Nettoyage : fichiers du modèle de départ Expo supprimés (explore, themed-*, hint-row, collapsible, web-badge, external-link, animated-icon, app-tabs, use-theme, use-color-scheme, constants/theme, images d'exemple) + ancien écran Expo en commentaire dans `index.tsx`. App : 5 359 → 4 316 lignes, 42 → 27 fichiers
+- `schemas/` (schémas SVG pour Figma + `texte-a-dire.md`, générés par `schemas/generer_schemas.py`) : **ne pas commiter** (choix de l'utilisateur)
 - [ ] Bloc 3 App (/30) : déployer (API + base MySQL + web), APK Android (EAS), version desktop installable (Electron), quelques tests, stockage sécurisé du jeton (`expo-secure-store` : aujourd'hui le jeton est seulement en mémoire, on est déconnecté en fermant l'app). `expo-doctor` : petits retards de version Expo déjà présents (`npx expo install --fix`)
 - [ ] Bloc 5 Intégration IA (/25) : déjà bien couvert ; ajouter la clé API, gestion des coûts/délais
 
