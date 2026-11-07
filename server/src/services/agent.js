@@ -16,9 +16,9 @@ function erreurVisible(message) {
   return err;
 }
 
-// =============================================
+
 // RÔLE ET LIMITES DE L'AGENT
-// =============================================
+
 const CONSIGNE = `Tu es l'assistant recruteur de CVMatch IA, une application qui met en relation candidats et recruteurs en Côte d'Ivoire.
 Tu travailles pour un seul recruteur, connecté à l'application. Ta mission : l'aider à trouver, comparer et contacter les bons candidats pour ses besoins et ses offres d'emploi.
 
@@ -39,9 +39,9 @@ Règles :
 Style : réponds en français, simplement et brièvement. Ta réponse s'affiche en texte brut : pas de Markdown (ni **, ni #, ni tableaux) ; pour une liste, commence chaque ligne par un tiret. Pour chaque candidat cité, donne son nom, son métier, sa ville, son expérience et, s'il y en a un, son score sur 100, avec une phrase qui explique ton choix.
 Un message préparé pour un candidat est poli, personnalisé (son métier, une compétence qui correspond), mentionne l'entreprise et le poste, et fait 3 à 6 phrases.`;
 
-// =============================================
+
 // OUTILS (strict : Claude doit respecter exactement ces schémas)
-// =============================================
+
 const OUTILS = [
   {
     name: 'rechercher_candidats',
