@@ -3,15 +3,11 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const { parametres } = require('./db');
 
 async function main() {
-  const connexion = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    multipleStatements: true,
-  });
+  // Sans base choisie : schema.sql crée lui-même la base « cvmatchia »
+  const connexion = await mysql.createConnection({ ...parametres(), multipleStatements: true });
 
   const sql = fs.readFileSync(path.join(__dirname, '..', 'sql', 'schema.sql'), 'utf8');
   await connexion.query(sql);

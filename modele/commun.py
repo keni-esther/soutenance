@@ -23,7 +23,9 @@ MOTS_VIDES = set(
 
 
 def charger_modele_embeddings():
-    return SentenceTransformer(NOM_MODELE_EMBEDDINGS)
+    # Toujours sur le processeur : sur un Space ZeroGPU, la carte graphique annoncée n'est
+    # utilisable que dans une fonction @spaces.GPU, ailleurs les vecteurs seraient faux.
+    return SentenceTransformer(NOM_MODELE_EMBEDDINGS, device='cpu')
 
 
 def nettoyer(texte):

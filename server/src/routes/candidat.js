@@ -11,8 +11,9 @@ const { scoresCompatibilite } = require('../services/match');
 const router = express.Router();
 router.use(exigerConnexion, exigerRole('candidat'));
 
-// Les CV sont rangés dans server/uploads/
-const DOSSIER_UPLOADS = path.join(__dirname, '..', '..', 'uploads');
+// Les CV sont rangés dans server/uploads/, ou dans DOSSIER_UPLOADS (sur Railway : le disque permanent)
+const DOSSIER_UPLOADS = process.env.DOSSIER_UPLOADS || path.join(__dirname, '..', '..', 'uploads');
+fs.mkdirSync(DOSSIER_UPLOADS, { recursive: true });
 const TYPES_ACCEPTES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
