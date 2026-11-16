@@ -175,7 +175,9 @@ router.post('/resume/valider', async (req, res) => {
 // OFFRES ET CANDIDATURES (phase 6)
 // =============================================
 
-// Infos du candidat utilisées pour le score : résumé IA validé en priorité, sinon le profil saisi
+// Infos du candidat utilisées pour le score : résumé IA validé en priorité, sinon le profil saisi.
+// Renvoie null si on ne sait rien de lui (ni métier, ni compétences, ni résumé) : pas de score
+// plutôt qu'un chiffre qui ne voudrait rien dire.
 async function donneesPourScore(id) {
   const profil = (await profilDe(id)) || {};
   const [[resume]] = await db.query('SELECT * FROM resumes WHERE utilisateur_id = ? AND valide = TRUE', [id]);
@@ -187,12 +189,9 @@ async function donneesPourScore(id) {
       resume_complet: resume.resume_complet,
     };
   }
-  return {
-    metier: profil.metier,
-    ville: profil.ville,
-    competences: String(profil.competences || '').split(',').map((c) => c.trim()).filter(Boolean),
-    resume_complet: '',
-  };
+  const competences = String(profil.competences || '').split(',').map((c) => c.trim()).filter(Boolean);
+  if (!profil.metier && competences.length === 0) return null;
+  return { metier: profil.metier, ville: profil.ville, competences, resume_complet: '' };
 }
 
 const SELECT_OFFRE = `
@@ -223,6 +222,9 @@ router.get('/offres', async (req, res) => {
 
   const [offres] = await db.query(sql, params);
   const moi = await donneesPourScore(req.utilisateur.id);
+  // Profil vide : pas de score, les offres restent triées de la plus récente à la plus ancienne
+  if (!moi) return res.json({ offres: offres.map((o) => ({ ...o, score: null })) });
+
   const scores = await scoresCompatibilite(offres.map((offre) => ({ offre, candidat: moi })));
   res.json({
     offres: offres.map((o, i) => ({ ...o, score: scores[i] })).sort((a, b) => b.score - a.score),
@@ -234,7 +236,7 @@ router.get('/offres/:id', async (req, res) => {
   const [[offre]] = await db.query(`${SELECT_OFFRE} AND o.id = ?`, [req.utilisateur.id, req.params.id]);
   if (!offre) return res.status(404).json({ erreur: "Cette offre n'est plus disponible." });
   const moi = await donneesPourScore(req.utilisateur.id);
-  const [score] = await scoresCompatibilite([{ offre, candidat: moi }]);
+  const [score] = moi ? await scoresCompatibilite([{ offre, candidat: moi }]) : [null];
   res.json({ offre: { ...offre, score } });
 });
 
