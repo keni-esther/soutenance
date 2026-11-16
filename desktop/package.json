@@ -1,0 +1,20 @@
+{
+  "name": "cvmatchia-desktop",
+  "productName": "CVMatch IA",
+  "version": "1.0.0",
+  "description": "CVMatch IA : plateforme de recrutement assistée par l'IA (version ordinateur)",
+  "author": "CVMatch IA",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "copier-web": "node copier-web.js",
+    "start": "npm run copier-web && electron-forge start",
+    "make": "npm run copier-web && electron-forge make"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/maker-squirrel": "8.0.1",
+    "electron": "45.3.3"
+  }
+}

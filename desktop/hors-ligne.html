@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>CVMatch IA — Pas de connexion</title>
+  <style>
+    body {
+      margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #FDF6EC; font-family: 'Segoe UI', sans-serif; color: #2B2B2B;
+    }
+    .carte { text-align: center; max-width: 420px; padding: 24px; }
+    .logo {
+      width: 90px; height: 90px; border-radius: 50%; background: #8C3B2E; color: #FDF6EC;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;
+      font: bold 36px Georgia, serif;
+    }
+    h1 { font: bold 26px Georgia, serif; margin: 0 0 10px; }
+    p { color: #6B6B6B; line-height: 1.5; margin: 0 0 24px; }
+    button {
+      background: #8C3B2E; color: #fff; border: 0; border-radius: 10px;
+      padding: 12px 28px; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="carte">
+    <div class="logo">CM</div>
+    <h1>Pas de connexion Internet</h1>
+    <p>CVMatch IA a besoin d'Internet pour accéder aux offres et aux profils.<br />Vérifiez votre connexion puis réessayez.</p>
+    <!-- Recharger la page : le logiciel revérifie la connexion -->
+    <button onclick="location.reload()">Réessayer</button>
+  </div>
+</body>
+</html>
