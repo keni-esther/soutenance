@@ -34,9 +34,10 @@ Règles :
 - Ne sélectionne ni n'écarte personne selon l'âge, le sexe, l'origine, la religion, la situation familiale, le handicap ou l'état de santé. Si on te le demande, explique poliment que ce n'est pas possible et propose des critères professionnels.
 - Les adresses e-mail des candidats ne te sont pas accessibles : le recruteur les voit dans l'application après l'envoi du message.
 - Si la demande sort du recrutement, réponds en une phrase que tu ne peux aider que pour le recrutement sur CVMatch IA.
+- Ne devine jamais le sexe d'un candidat d'après son prénom : dans un message, écris « Bonjour » suivi de son prénom et de son nom, sans « Monsieur » ni « Madame ».
 - Quand une demande est ambiguë (par exemple « mon offre » alors qu'il en a plusieurs), regarde d'abord ses offres, puis demande laquelle s'il y a un doute.
 
-Style : réponds en français, simplement et brièvement. Ta réponse s'affiche en texte brut : pas de Markdown (ni **, ni #, ni tableaux) ; pour une liste, commence chaque ligne par un tiret. Pour chaque candidat cité, donne son nom, son métier, sa ville, son expérience et, s'il y en a un, son score sur 100, avec une phrase qui explique ton choix.
+Style : réponds toujours en français (même pour une remarque en cours de recherche), simplement et brièvement. Ta réponse s'affiche en texte brut : pas de Markdown (ni **, ni #, ni tableaux) ; pour une liste, commence chaque ligne par un tiret. Pour chaque candidat cité, donne son nom, son métier, sa ville, son expérience et, s'il y en a un, son score sur 100, avec une phrase qui explique ton choix.
 Un message préparé pour un candidat est poli, personnalisé (son métier, une compétence qui correspond), mentionne l'entreprise et le poste, et fait 3 à 6 phrases.`;
 
 
@@ -247,10 +248,12 @@ async function filDeDiscussion(recruteurId, messages) {
       tourAgent = { auteur: 'agent', texte: '', etapes: [], brouillons: [] };
       fil.push(tourAgent);
     }
+    // Seul le texte du dernier message de Claude est la réponse : les textes écrits avant un
+    // outil sont des remarques de travail (« je cherche… ») qu'on n'affiche pas
+    const texte = m.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n');
+    if (texte) tourAgent.texte = texte;
     for (const bloc of m.content) {
-      if (bloc.type === 'text') {
-        tourAgent.texte = [tourAgent.texte, bloc.text].filter(Boolean).join('\n\n');
-      } else if (bloc.type === 'tool_use') {
+      if (bloc.type === 'tool_use') {
         const libelle = LIBELLES_OUTILS[bloc.name] || bloc.name;
         if (!tourAgent.etapes.includes(libelle)) tourAgent.etapes.push(libelle);
         if (bloc.name === 'proposer_message') {
@@ -285,6 +288,19 @@ async function demanderAgent(recruteurId, texte) {
   }
 
   const messages = await chargerHistorique(recruteurId);
+  const [[entreprise]] = await db.query(
+    'SELECT entreprise, secteur, ville FROM profils_recruteurs WHERE utilisateur_id = ?',
+    [recruteurId]
+  );
+  // Consigne fixe + entreprise du recruteur (pour signer les messages aux candidats)
+  const systeme = [{ type: 'text', text: CONSIGNE }];
+  if (entreprise) {
+    const lieu = entreprise.ville ? `, à ${entreprise.ville}` : '';
+    systeme.push({
+      type: 'text',
+      text: `Le recruteur travaille pour l'entreprise « ${entreprise.entreprise} » (secteur : ${entreprise.secteur}${lieu}). Utilise ce nom dans les messages aux candidats.`,
+    });
+  }
   messages.push({ role: 'user', content: texte });
 
   for (let etape = 1; etape <= MAX_ETAPES; etape++) {
@@ -296,7 +312,7 @@ async function demanderAgent(recruteurId, texte) {
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       cache_control: { type: 'ephemeral' }, // l'historique déjà envoyé coûte moins cher
-      system: CONSIGNE,
+      system: systeme,
       tools: OUTILS,
       messages,
     });

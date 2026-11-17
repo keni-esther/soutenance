@@ -93,9 +93,13 @@ async function scoresCompatibilite(paires) {
     });
     if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
     const { scores } = await reponse.json();
-    return scores.map((s) => s.score);
+    // Score combiné : moyenne du modèle et des mots-clés (métier, compétences, ville).
+    // Le modèle a appris sur de longs CV en anglais ; sur les profils courts et en français de
+    // l'app, ses scores varient peu (≈ 45-55). Les mots-clés reprennent les signaux trouvés au
+    // bloc 1 (le métier d'abord) et rendent lisible l'écart entre bons et mauvais profils.
+    return scores.map((s, i) => Math.round((s.score + scoreCompatibilite(paires[i].offre, paires[i].candidat)) / 2));
   } catch (err) {
-    console.warn(`Modèle de deep matching indisponible (${err.message}) : score par mots-clés.`);
+    console.warn(`Modèle de deep matching indisponible (${err.message}) : score par mots-clés seuls.`);
     return paires.map(({ offre, candidat }) => scoreCompatibilite(offre, candidat));
   }
 }
